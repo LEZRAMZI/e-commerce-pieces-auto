@@ -1,0 +1,6 @@
+{
+  "name": "E-Commerce Pièces Auto",
+  "description": "Plateforme e-commerce de pièces automobiles avec recherche par compatibilité de véhicule et panneau d'administration pour la gestion des commandes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
