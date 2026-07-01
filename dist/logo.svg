@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Outer circle white border -->
+  <circle cx="100" cy="100" r="98" fill="white" stroke="#ccc" stroke-width="2"/>
+
+  <!-- Inner black circle (main badge) -->
+  <circle cx="100" cy="100" r="88" fill="#111111"/>
+
+  <!-- Circular text arc "AUTOMOTIVE MAINTENANCE & CHIPTUNING" -->
+  <defs>
+    <path id="topArc" d="M 20,100 A 80,80 0 0,1 180,100"/>
+    <path id="bottomArc" d="M 30,110 A 75,75 0 0,0 170,110"/>
+  </defs>
+  <text font-family="Arial, sans-serif" font-size="8.5" font-weight="bold" fill="white" letter-spacing="1.8">
+    <textPath href="#topArc" startOffset="5%">AUTOMOTIVE MAINTENANCE &amp; CHIPTUNING</textPath>
+  </text>
+
+  <!-- DALLAS banner (red background arc shape) -->
+  <ellipse cx="100" cy="72" rx="40" ry="16" fill="#cc0000"/>
+  <text x="100" y="77" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="white" letter-spacing="1">DALLAS</text>
+
+  <!-- Wheel / rim in center -->
+  <circle cx="100" cy="100" r="14" fill="none" stroke="white" stroke-width="2"/>
+  <circle cx="100" cy="100" r="4" fill="white"/>
+  <!-- Spokes -->
+  <line x1="100" y1="86" x2="100" y2="114" stroke="white" stroke-width="1.5"/>
+  <line x1="86" y1="100" x2="114" y2="100" stroke="white" stroke-width="1.5"/>
+  <line x1="90" y1="90" x2="110" y2="110" stroke="white" stroke-width="1"/>
+  <line x1="110" y1="90" x2="90" y2="110" stroke="white" stroke-width="1"/>
+
+  <!-- Left wrench -->
+  <g transform="rotate(-40, 100, 100) translate(-18, -2)">
+    <!-- wrench handle -->
+    <rect x="56" y="97" width="42" height="7" rx="3.5" fill="white"/>
+    <!-- wrench head circle -->
+    <circle cx="56" cy="100" r="9" fill="white"/>
+    <circle cx="56" cy="100" r="5" fill="#111111"/>
+    <!-- wrench open end -->
+    <circle cx="98" cy="100" r="7" fill="white"/>
+    <circle cx="98" cy="100" r="4" fill="#111111"/>
+  </g>
+
+  <!-- Right wrench (mirrored) -->
+  <g transform="rotate(40, 100, 100) translate(18, -2)">
+    <rect x="102" y="97" width="42" height="7" rx="3.5" fill="white"/>
+    <circle cx="144" cy="100" r="9" fill="white"/>
+    <circle cx="144" cy="100" r="5" fill="#111111"/>
+    <circle cx="102" cy="100" r="7" fill="white"/>
+    <circle cx="102" cy="100" r="4" fill="#111111"/>
+  </g>
+
+  <!-- OUEST banner at bottom -->
+  <ellipse cx="100" cy="128" rx="36" ry="14" fill="#111111"/>
+  <rect x="64" y="120" width="72" height="16" rx="4" fill="#cc0000"/>
+  <text x="100" y="131" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="12" font-weight="900" fill="white" letter-spacing="2">OUEST</text>
+
+  <!-- Car brand logos area (bottom strip) -->
+  <rect x="12" y="148" width="176" height="40" rx="4" fill="white"/>
+
+  <!-- VW text -->
+  <text x="28" y="164" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="#1a1a5e">VW</text>
+  <!-- Audi text -->
+  <text x="52" y="164" text-anchor="middle" font-family="Arial, sans-serif" font-size="6.5" font-weight="bold" fill="#bb0000">Audi</text>
+  <!-- CUPRA -->
+  <text x="76" y="164" text-anchor="middle" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="#a67c52">CUPRA</text>
+  <!-- SKODA -->
+  <text x="100" y="164" text-anchor="middle" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="#4caf50">ŠKODA</text>
+  <!-- PORSCHE -->
+  <text x="126" y="164" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="#c0a040">PORSCHE</text>
+  <!-- Land Rover -->
+  <text x="35" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="#005a2b">LAND ROVER</text>
+  <!-- Mercedes-Benz -->
+  <text x="100" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="#222">Mercedes-Benz</text>
+  <!-- Jaguar -->
+  <text x="162" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="#4a0080">JAGUAR</text>
+</svg>
