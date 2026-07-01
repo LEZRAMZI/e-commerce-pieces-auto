@@ -2,10 +2,7 @@
 nixPkgs = ["nodejs-22_x"]
 
 [phases.install]
-cmd = "npm install"
+cmd = "npm install --omit=dev"
 
-[phases.build]
-cmd = "npm run build"
-
-[phases.start]
+[start]
 cmd = "node dist/server.cjs"

@@ -4,5 +4,4 @@ coverage/
 *.log
 .env*
 !.env.example
-# On garde dist pour le déploiement
-# dist/  ← Supprimez cette ligne si elle existe
+# dist/  ← Cette ligne ne doit pas être présente !

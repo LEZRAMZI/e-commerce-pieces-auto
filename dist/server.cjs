@@ -746,10 +746,37 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path.default.join(__dirname, "dist");
-    console.log(`[INFO] Servant les fichiers statiques depuis: ${distPath}`);
-    console.log(`[INFO] Dossier dist existe? ${import_fs.default.existsSync(distPath)}`);
-    if (import_fs.default.existsSync(distPath)) {
+    console.log(`[INFO] process.cwd(): ${process.cwd()}`);
+    console.log(`[INFO] __dirname: ${__dirname}`);
+    try {
+      console.log(`[INFO] Contenu de ${process.cwd()}: ${import_fs.default.readdirSync(process.cwd()).join(", ")}`);
+    } catch (err) {
+      console.warn(`[WARN] Impossible de lire le contenu de ${process.cwd()}`);
+    }
+    const possiblePaths = [
+      import_path.default.join(process.cwd(), "dist"),
+      import_path.default.join(__dirname, "dist"),
+      import_path.default.join(process.cwd(), "..", "dist"),
+      import_path.default.join(__dirname, "..", "dist")
+    ];
+    let distPath = null;
+    for (const p of possiblePaths) {
+      try {
+        if (import_fs.default.existsSync(p)) {
+          distPath = p;
+          console.log(`[INFO] \u2705 Dossier dist trouv\xE9 \xE0: ${p}`);
+          break;
+        }
+      } catch (err) {
+      }
+    }
+    if (distPath) {
+      try {
+        console.log(`[INFO] Contenu de dist: ${import_fs.default.readdirSync(distPath).join(", ")}`);
+        console.log(`[INFO] Contenu de dist/assets: ${import_fs.default.readdirSync(import_path.default.join(distPath, "assets")).join(", ")}`);
+      } catch (err) {
+        console.warn(`[WARN] Impossible de lire le contenu de dist`);
+      }
       app.use(import_express.default.static(distPath));
       app.use("/assets", import_express.default.static(import_path.default.join(distPath, "assets")));
       app.get("*", (req, res) => {
@@ -758,15 +785,61 @@ async function startServer() {
         res.sendFile(indexPath);
       });
     } else {
-      console.error(`[ERREUR] Le dossier dist n'existe pas \xE0 ${distPath}`);
+      console.error(`[ERREUR] \u274C Dossier dist non trouv\xE9. Chemins test\xE9s: ${possiblePaths.join(", ")}`);
       app.get("*", (req, res) => {
-        res.status(500).send(`Erreur: Le dossier dist n'existe pas. Veuillez construire l'application avec "npm run build".`);
+        let content = "";
+        try {
+          content = import_fs.default.readdirSync(process.cwd()).join(", ");
+        } catch (err) {
+          content = "Impossible de lire le contenu";
+        }
+        res.status(500).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8" />
+              <title>Erreur - Dossier dist non trouv\xE9</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
+                h1 { color: #dc3545; }
+                .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e9ecef; }
+                code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+                .path { background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #dee2e6; font-family: monospace; }
+              </style>
+            </head>
+            <body>
+              <h1>\u26A0\uFE0F Erreur de configuration</h1>
+              <p>Le dossier <code>dist</code> n'a pas \xE9t\xE9 trouv\xE9 sur le serveur.</p>
+              
+              <div class="card">
+                <h3>\u{1F4C1} Informations de d\xE9bogage</h3>
+                <p><strong>process.cwd():</strong></p>
+                <div class="path">${process.cwd()}</div>
+                <p><strong>__dirname:</strong></p>
+                <div class="path">${__dirname}</div>
+                <p><strong>Contenu de process.cwd():</strong></p>
+                <div class="path">${content}</div>
+                <p><strong>Chemins test\xE9s:</strong></p>
+                <div class="path">${possiblePaths.join("<br>")}</div>
+              </div>
+              
+              <div class="card">
+                <h3>\u{1F527} Solutions possibles</h3>
+                <ul>
+                  <li>V\xE9rifiez que <code>npm run build</code> a \xE9t\xE9 ex\xE9cut\xE9</li>
+                  <li>V\xE9rifiez que le dossier <code>dist</code> est pouss\xE9 sur GitHub</li>
+                  <li>V\xE9rifiez la configuration de <code>nixpacks.toml</code></li>
+                </ul>
+              </div>
+            </body>
+          </html>
+        `);
       });
     }
   }
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[OK] Serveur e-commerce connect\xE9 sur le port ${PORT} (mode: ${isProduction ? "production" : "d\xE9veloppement"})`);
-    console.log(`[INFO] URL: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+    console.log(`[OK] \u{1F680} Serveur e-commerce connect\xE9 sur le port ${PORT} (mode: ${isProduction ? "production" : "d\xE9veloppement"})`);
+    console.log(`[INFO] \u{1F310} URL: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
   });
 }
 startServer();

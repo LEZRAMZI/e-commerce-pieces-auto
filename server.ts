@@ -505,36 +505,119 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // ✅ CORRECTION : Mode production - servir les fichiers statiques
-    const distPath = path.join(__dirname, 'dist');
-    console.log(`[INFO] Servant les fichiers statiques depuis: ${distPath}`);
-    console.log(`[INFO] Dossier dist existe? ${fs.existsSync(distPath)}`);
+    // ✅ CORRECTION : Mode production - servir les fichiers statiques avec recherche automatique
+    console.log(`[INFO] process.cwd(): ${process.cwd()}`);
+    console.log(`[INFO] __dirname: ${__dirname}`);
     
-    if (fs.existsSync(distPath)) {
+    // Afficher le contenu du dossier courant
+    try {
+      console.log(`[INFO] Contenu de ${process.cwd()}: ${fs.readdirSync(process.cwd()).join(', ')}`);
+    } catch (err) {
+      console.warn(`[WARN] Impossible de lire le contenu de ${process.cwd()}`);
+    }
+    
+    // Essayer plusieurs chemins possibles
+    const possiblePaths = [
+      path.join(process.cwd(), 'dist'),
+      path.join(__dirname, 'dist'),
+      path.join(process.cwd(), '..', 'dist'),
+      path.join(__dirname, '..', 'dist')
+    ];
+    
+    let distPath = null;
+    for (const p of possiblePaths) {
+      try {
+        if (fs.existsSync(p)) {
+          distPath = p;
+          console.log(`[INFO] ✅ Dossier dist trouvé à: ${p}`);
+          break;
+        }
+      } catch (err) {
+        // Ignorer
+      }
+    }
+    
+    if (distPath) {
+      try {
+        console.log(`[INFO] Contenu de dist: ${fs.readdirSync(distPath).join(', ')}`);
+        console.log(`[INFO] Contenu de dist/assets: ${fs.readdirSync(path.join(distPath, 'assets')).join(', ')}`);
+      } catch (err) {
+        console.warn(`[WARN] Impossible de lire le contenu de dist`);
+      }
+      
       // Servir les fichiers statiques du dossier dist
       app.use(express.static(distPath));
       
       // Servir spécifiquement le dossier assets
       app.use('/assets', express.static(path.join(distPath, 'assets')));
       
-      // ✅ SPA Fallback - DOIT être après toutes les routes API
+      // SPA Fallback - DOIT être après toutes les routes API
       app.get('*', (req, res) => {
         const indexPath = path.join(distPath, 'index.html');
         console.log(`[INFO] SPA Fallback: ${req.path} -> ${indexPath}`);
         res.sendFile(indexPath);
       });
     } else {
-      console.error(`[ERREUR] Le dossier dist n'existe pas à ${distPath}`);
+      console.error(`[ERREUR] ❌ Dossier dist non trouvé. Chemins testés: ${possiblePaths.join(', ')}`);
+      
+      // Servir une page d'erreur détaillée
       app.get('*', (req, res) => {
-        res.status(500).send('Erreur: Le dossier dist n\'existe pas. Veuillez construire l\'application avec "npm run build".');
+        let content = '';
+        try {
+          content = fs.readdirSync(process.cwd()).join(', ');
+        } catch (err) {
+          content = 'Impossible de lire le contenu';
+        }
+        
+        res.status(500).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8" />
+              <title>Erreur - Dossier dist non trouvé</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
+                h1 { color: #dc3545; }
+                .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e9ecef; }
+                code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+                .path { background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #dee2e6; font-family: monospace; }
+              </style>
+            </head>
+            <body>
+              <h1>⚠️ Erreur de configuration</h1>
+              <p>Le dossier <code>dist</code> n'a pas été trouvé sur le serveur.</p>
+              
+              <div class="card">
+                <h3>📁 Informations de débogage</h3>
+                <p><strong>process.cwd():</strong></p>
+                <div class="path">${process.cwd()}</div>
+                <p><strong>__dirname:</strong></p>
+                <div class="path">${__dirname}</div>
+                <p><strong>Contenu de process.cwd():</strong></p>
+                <div class="path">${content}</div>
+                <p><strong>Chemins testés:</strong></p>
+                <div class="path">${possiblePaths.join('<br>')}</div>
+              </div>
+              
+              <div class="card">
+                <h3>🔧 Solutions possibles</h3>
+                <ul>
+                  <li>Vérifiez que <code>npm run build</code> a été exécuté</li>
+                  <li>Vérifiez que le dossier <code>dist</code> est poussé sur GitHub</li>
+                  <li>Vérifiez la configuration de <code>nixpacks.toml</code></li>
+                </ul>
+              </div>
+            </body>
+          </html>
+        `);
       });
     }
   }
 
   // Démarrer le serveur
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[OK] Serveur e-commerce connecté sur le port ${PORT} (mode: ${isProduction ? 'production' : 'développement'})`);
-    console.log(`[INFO] URL: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+    console.log(`[OK] 🚀 Serveur e-commerce connecté sur le port ${PORT} (mode: ${isProduction ? 'production' : 'développement'})`);
+    console.log(`[INFO] 🌐 URL: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
   });
 }
 
