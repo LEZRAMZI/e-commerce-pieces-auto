@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import { createServer as createViteServer } from 'vite';
 import { dbInstance } from './backend/db';
 import { handleLogin, requireAdmin, AuthenticatedRequest } from './backend/auth';
+import fs from 'fs';
 
 // --------------------------------------------------------
 // PRODUCTION SAFETY CHECKS
@@ -41,31 +42,56 @@ const normalizeWhatsAppNumber = (value: string) => {
 
 async function startServer() {
   const app = express();
-  const PORT = parseInt(process.env.PORT || '3000', 10);
+  const PORT = parseInt(process.env.PORT || '8080', 10);
   const isProduction = process.env.NODE_ENV === 'production';
 
   // --------------------------------------------------------
   // MIDDLEWARES GLOBAUX
   // --------------------------------------------------------
 
-  // CORS : autorise les requêtes cross-origin en développement,
-  // ou depuis APP_URL en production
+  // ✅ Configuration CORS corrigée pour Railway
   const allowedOrigins = isProduction
-    ? [process.env.APP_URL].filter(Boolean) as string[]
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'];
+    ? [
+        process.env.APP_URL,
+        'https://e-commerce-pieces-auto-production.up.railway.app',
+        'https://*.up.railway.app'
+      ].filter(Boolean) as string[]
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'https://*.up.railway.app'];
 
   app.use(cors({
-    origin: isProduction
-      ? (origin, callback) => {
-          // En production : autoriser uniquement APP_URL et les appels sans origine (serveur-à-serveur)
-          if (!origin) return callback(null, true);
-          if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-            return callback(null, true);
+    origin: (origin, callback) => {
+      // Autoriser les requêtes sans origine (appels serveur-à-serveur, curl, etc.)
+      if (!origin) return callback(null, true);
+      
+      // En production, autoriser les origines spécifiques
+      if (isProduction) {
+        // Vérifier si l'origine est dans la liste autorisée
+        const isAllowed = allowedOrigins.some(allowed => {
+          // Support des wildcards comme *.up.railway.app
+          if (allowed && allowed.includes('*')) {
+            const pattern = allowed.replace(/\*/g, '.*');
+            try {
+              return new RegExp(`^${pattern}$`).test(origin);
+            } catch {
+              return false;
+            }
           }
-          return callback(new Error(`CORS bloqué pour l'origine : ${origin}`));
+          return allowed === origin;
+        });
+        
+        if (isAllowed) {
+          return callback(null, true);
         }
-      : true, // En développement : tout autoriser (ngrok, localhost, etc.)
+        console.warn(`[CORS] Origine bloquée: ${origin}`);
+        return callback(new Error(`CORS bloqué pour l'origine : ${origin}`));
+      }
+      
+      // En développement, tout autoriser
+      return callback(null, true);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   }));
 
   // Middleware pour parser le JSON
@@ -328,10 +354,10 @@ async function startServer() {
       }
 
       // Format items properly
-      const formattedItems = items.map(item => ({
+      const formattedItems = items.map((item: any) => ({
         product_id: parseInt(item.product_id, 10),
         quantity: parseInt(item.quantity, 10)
-      })).filter(item => !isNaN(item.product_id) && !isNaN(item.quantity) && item.quantity > 0);
+      })).filter((item: any) => !isNaN(item.product_id) && !isNaN(item.quantity) && item.quantity > 0);
 
       if (formattedItems.length === 0) {
         return res.status(400).json({ error: "Éléments du panier invalides." });
@@ -472,22 +498,43 @@ async function startServer() {
   // INTEGRATION DE VITE / FRONTEND SERVING
   // --------------------------------------------------------
   if (!isProduction) {
+    // Mode développement : utiliser Vite
     const vite = await createViteServer({
       server: { middlewareMode: true, allowedHosts: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    // SPA Fallback
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    // ✅ CORRECTION : Mode production - servir les fichiers statiques
+    const distPath = path.join(__dirname, 'dist');
+    console.log(`[INFO] Servant les fichiers statiques depuis: ${distPath}`);
+    console.log(`[INFO] Dossier dist existe? ${fs.existsSync(distPath)}`);
+    
+    if (fs.existsSync(distPath)) {
+      // Servir les fichiers statiques du dossier dist
+      app.use(express.static(distPath));
+      
+      // Servir spécifiquement le dossier assets
+      app.use('/assets', express.static(path.join(distPath, 'assets')));
+      
+      // ✅ SPA Fallback - DOIT être après toutes les routes API
+      app.get('*', (req, res) => {
+        const indexPath = path.join(distPath, 'index.html');
+        console.log(`[INFO] SPA Fallback: ${req.path} -> ${indexPath}`);
+        res.sendFile(indexPath);
+      });
+    } else {
+      console.error(`[ERREUR] Le dossier dist n'existe pas à ${distPath}`);
+      app.get('*', (req, res) => {
+        res.status(500).send('Erreur: Le dossier dist n\'existe pas. Veuillez construire l\'application avec "npm run build".');
+      });
+    }
   }
 
+  // Démarrer le serveur
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[OK] Serveur e-commerce connecté sur le port ${PORT} (mode: ${isProduction ? 'production' : 'développement'})`);
+    console.log(`[INFO] URL: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
   });
 }
 

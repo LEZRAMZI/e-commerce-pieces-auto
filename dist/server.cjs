@@ -24,6 +24,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // server.ts
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
+var import_cors = __toESM(require("cors"), 1);
+var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
 var import_vite = require("vite");
 
 // backend/db.ts
@@ -308,8 +310,10 @@ var dbInstance = new Database();
 
 // backend/auth.ts
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
+var import_bcrypt = __toESM(require("bcrypt"), 1);
 var JWT_SECRET = process.env.JWT_SECRET || "pieces-auto-expert-secret-key-2026";
 var ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@piecesauto.com";
+var ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
 var ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 function signToken(payload) {
   return import_jsonwebtoken.default.sign(payload, JWT_SECRET, { expiresIn: "24h" });
@@ -332,25 +336,49 @@ function requireAdmin(req, res, next) {
     return res.status(403).json({ error: "Session expir\xE9e ou jeton d'authentification invalide." });
   }
 }
-function handleLogin(req, res) {
+async function handleLogin(req, res) {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Veuillez fournir un e-mail et un mot de passe." });
   }
-  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
-    const token = signToken({ email: ADMIN_EMAIL, role: "admin" });
-    return res.json({
-      token,
-      admin: {
-        email: ADMIN_EMAIL,
-        name: "Administrateur Pi\xE8ces Auto"
-      }
-    });
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    return res.status(401).json({ error: "Identifiants ou mot de passe incorrects." });
   }
-  return res.status(401).json({ error: "Identifiants ou mot de passe incorrects." });
+  let passwordValid = false;
+  if (ADMIN_PASSWORD_HASH) {
+    passwordValid = await import_bcrypt.default.compare(password, ADMIN_PASSWORD_HASH);
+  } else {
+    passwordValid = password === ADMIN_PASSWORD;
+  }
+  if (!passwordValid) {
+    return res.status(401).json({ error: "Identifiants ou mot de passe incorrects." });
+  }
+  const token = signToken({ email: ADMIN_EMAIL, role: "admin" });
+  return res.json({
+    token,
+    admin: {
+      email: ADMIN_EMAIL,
+      name: "Administrateur Pi\xE8ces Auto"
+    }
+  });
 }
 
 // server.ts
+var import_fs = __toESM(require("fs"), 1);
+if (process.env.NODE_ENV === "production") {
+  const weakSecrets = ["pieces-auto-expert-secret-key-2026", "secret", "changeme", ""];
+  if (!process.env.JWT_SECRET || weakSecrets.includes(process.env.JWT_SECRET)) {
+    console.error("[ERREUR CRITIQUE] JWT_SECRET manquant ou trop faible en production. Veuillez d\xE9finir une valeur forte via les variables d'environnement.");
+    process.exit(1);
+  }
+  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === "admin123") {
+    console.error("[ERREUR CRITIQUE] ADMIN_PASSWORD manquant ou trop faible en production. Veuillez d\xE9finir un mot de passe fort via les variables d'environnement.");
+    process.exit(1);
+  }
+  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "MY_GEMINI_API_KEY") {
+    console.warn("[ATTENTION] GEMINI_API_KEY non configur\xE9e ou encore sur la valeur placeholder.");
+  }
+}
 var normalizeWhatsAppNumber2 = (value) => {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -360,9 +388,64 @@ var normalizeWhatsAppNumber2 = (value) => {
 };
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = 3e3;
+  const PORT = parseInt(process.env.PORT || "8080", 10);
+  const isProduction = process.env.NODE_ENV === "production";
+  const allowedOrigins = isProduction ? [
+    process.env.APP_URL,
+    "https://e-commerce-pieces-auto-production.up.railway.app",
+    "https://*.up.railway.app"
+  ].filter(Boolean) : ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "https://*.up.railway.app"];
+  app.use((0, import_cors.default)({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (isProduction) {
+        const isAllowed = allowedOrigins.some((allowed) => {
+          if (allowed && allowed.includes("*")) {
+            const pattern = allowed.replace(/\*/g, ".*");
+            try {
+              return new RegExp(`^${pattern}$`).test(origin);
+            } catch {
+              return false;
+            }
+          }
+          return allowed === origin;
+        });
+        if (isAllowed) {
+          return callback(null, true);
+        }
+        console.warn(`[CORS] Origine bloqu\xE9e: ${origin}`);
+        return callback(new Error(`CORS bloqu\xE9 pour l'origine : ${origin}`));
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  }));
   app.use(import_express.default.json());
-  app.post("/api/auth/login", handleLogin);
+  const loginLimiter = (0, import_express_rate_limit.default)({
+    windowMs: 15 * 60 * 1e3,
+    // 15 minutes
+    max: 10,
+    // 10 tentatives max par 15 minutes
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Trop de tentatives de connexion. Veuillez r\xE9essayer dans 15 minutes." }
+  });
+  const apiLimiter = (0, import_express_rate_limit.default)({
+    windowMs: 60 * 1e3,
+    // 1 minute
+    max: 120,
+    // 120 requêtes par minute par IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Trop de requ\xEAtes. Veuillez patienter." }
+  });
+  app.use("/api/", apiLimiter);
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  });
+  app.post("/api/auth/login", loginLimiter, handleLogin);
   app.get("/api/settings/whatsapp-number", async (req, res) => {
     try {
       const whatsappNumber = await dbInstance.getWhatsAppNumber();
@@ -389,7 +472,7 @@ async function startServer() {
   });
   app.get("/api/products", async (req, res) => {
     try {
-      const { brand, model, year, q, category } = req.query;
+      const { brand, model, year, q, category, page, limit } = req.query;
       let products = await dbInstance.getProducts();
       if (brand) {
         products = products.filter((p) => p.brand.toLowerCase() === brand.toLowerCase());
@@ -428,6 +511,22 @@ async function startServer() {
         products = products.filter(
           (p) => p.name.toLowerCase().includes(term) || p.description.toLowerCase().includes(term) || p.brand.toLowerCase().includes(term) || p.car_model.toLowerCase().includes(term)
         );
+      }
+      const totalCount = products.length;
+      if (page !== void 0 && limit !== void 0) {
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const offset = (pageNum - 1) * limitNum;
+        products = products.slice(offset, offset + limitNum);
+        return res.json({
+          data: products,
+          pagination: {
+            total: totalCount,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(totalCount / limitNum)
+          }
+        });
       }
       res.json(products);
     } catch (err) {
@@ -555,7 +654,24 @@ async function startServer() {
   });
   app.get("/api/orders", requireAdmin, async (req, res) => {
     try {
-      const orders = await dbInstance.getOrdersWithDetails();
+      const { page, limit } = req.query;
+      let orders = await dbInstance.getOrdersWithDetails();
+      const totalCount = orders.length;
+      if (page !== void 0 && limit !== void 0) {
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const offset = (pageNum - 1) * limitNum;
+        orders = orders.slice(offset, offset + limitNum);
+        return res.json({
+          data: orders,
+          pagination: {
+            total: totalCount,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(totalCount / limitNum)
+          }
+        });
+      }
       res.json(orders);
     } catch (err) {
       res.status(500).json({ error: "Erreur de r\xE9cup\xE9ration des commandes.", details: err.message });
@@ -623,21 +739,34 @@ async function startServer() {
       res.status(500).json({ error: "Erreur d'agr\xE9gation des statistiques.", details: err.message });
     }
   });
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProduction) {
     const vite = await (0, import_vite.createServer)({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, allowedHosts: true },
       appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
-    app.use(import_express.default.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
-    });
+    const distPath = import_path.default.join(__dirname, "dist");
+    console.log(`[INFO] Servant les fichiers statiques depuis: ${distPath}`);
+    console.log(`[INFO] Dossier dist existe? ${import_fs.default.existsSync(distPath)}`);
+    if (import_fs.default.existsSync(distPath)) {
+      app.use(import_express.default.static(distPath));
+      app.use("/assets", import_express.default.static(import_path.default.join(distPath, "assets")));
+      app.get("*", (req, res) => {
+        const indexPath = import_path.default.join(distPath, "index.html");
+        console.log(`[INFO] SPA Fallback: ${req.path} -> ${indexPath}`);
+        res.sendFile(indexPath);
+      });
+    } else {
+      console.error(`[ERREUR] Le dossier dist n'existe pas \xE0 ${distPath}`);
+      app.get("*", (req, res) => {
+        res.status(500).send(`Erreur: Le dossier dist n'existe pas. Veuillez construire l'application avec "npm run build".`);
+      });
+    }
   }
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[OK] Serveur e-commerce connect\xE9 sur le port ${PORT}`);
+    console.log(`[OK] Serveur e-commerce connect\xE9 sur le port ${PORT} (mode: ${isProduction ? "production" : "d\xE9veloppement"})`);
+    console.log(`[INFO] URL: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
   });
 }
 startServer();

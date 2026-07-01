@@ -1,5 +1,11 @@
 [phases.setup]
-nixPkgs = ["caddy"]
+nixPkgs = ["nodejs-22_x"]
 
-[start]
-cmd = "caddy run --config /app/Caddyfile"
+[phases.install]
+cmd = "npm install"
+
+[phases.build]
+cmd = "npm run build"
+
+[phases.start]
+cmd = "node dist/server.cjs"
