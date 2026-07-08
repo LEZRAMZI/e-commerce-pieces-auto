@@ -46,7 +46,8 @@ export const cacheHelper = {
     });
     if (!res.ok) {
       const errData = await res.json();
-      throw new Error(errData.error || 'Erreur lors de la création du produit.');
+      const details = errData.details ? ` — ${errData.details}` : '';
+      throw new Error((errData.error || 'Erreur lors de la création du produit.') + details);
     }
     return res.json();
   },
