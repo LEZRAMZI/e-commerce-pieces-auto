@@ -13,6 +13,8 @@ USE auto_parts_db;
 CREATE TABLE IF NOT EXISTS PRODUCTS (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    reference VARCHAR(100) NULL,
+    part_brand VARCHAR(100) NULL,
     brand VARCHAR(100) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     description TEXT,

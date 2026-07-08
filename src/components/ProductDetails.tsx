@@ -74,7 +74,7 @@ export default function ProductDetails({ product, onAddToCart, onBackToCatalogue
           <div className="border-b border-slate-100 pb-6">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="rounded bg-blue-50 px-3 py-1 text-xs font-bold tracking-wide text-blue-700 uppercase">
-                {product.brand}
+                {product.part_brand || product.brand}
               </span>
               {product.category && (
                 <span className="rounded bg-slate-100 px-3 py-1 text-xs font-bold tracking-wide text-slate-700 uppercase">
@@ -84,6 +84,7 @@ export default function ProductDetails({ product, onAddToCart, onBackToCatalogue
             </div>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
               {product.name}
+              {product.reference && <span className="block sm:inline sm:ml-3 text-lg font-medium text-slate-500">Ref: {product.reference}</span>}
             </h1>
             <p className="mt-4 text-3xl font-black text-slate-900">
               {product.price.toLocaleString('fr-FR')} DA

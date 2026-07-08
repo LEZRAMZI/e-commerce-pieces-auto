@@ -78,7 +78,7 @@ export default function CartView({ cartItems, onUpdateQuantity, onRemoveItem, on
                       <div>
                         {/* Name */}
                         <h4 className="text-sm font-bold text-slate-800 hover:text-blue-600 transition cursor-pointer">
-                          {product.name}
+                          {product.name} {product.reference && <span className="font-normal text-xs text-slate-400 ml-1">({product.reference})</span>}
                         </h4>
                         
                         {/* Compatibility */}

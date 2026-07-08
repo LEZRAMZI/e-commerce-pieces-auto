@@ -12,13 +12,17 @@ dotenv.config();
 dotenv.config({ path: '.env.local', override: true });
 
 const normalizeWhatsAppNumber = (value: string) => {
-  const trimmed = value.trim();
-  if (!trimmed) return '213555123456';
+  const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length === 0) return '213555123456';
 
-  const digitsOnly = trimmed.replace(/\D/g, '');
-  if (!digitsOnly) return '213555123456';
+  const normalizedParts = parts.map(trimmed => {
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    if (!digitsOnly) return '';
+    return trimmed.startsWith('+') ? `+${digitsOnly}` : digitsOnly;
+  }).filter(Boolean);
 
-  return trimmed.startsWith('+') ? `+${digitsOnly}` : digitsOnly;
+  if (normalizedParts.length === 0) return '213555123456';
+  return normalizedParts.join(',');
 };
 
 // Create a connection pool
@@ -70,8 +74,8 @@ class Database {
     const low_stock_threshold = item.low_stock_threshold !== undefined ? item.low_stock_threshold : 5;
 
     const [result] = await pool.query(
-      'INSERT INTO PRODUCTS (name, brand, price, description, car_model, year, motorisation, category, low_stock_threshold, stock, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [item.name, brand, item.price, item.description || '', car_model, year, motorisation, item.category || '0 Accessoires/Infodivert./divers', low_stock_threshold, item.stock, item.image_url || '']
+      'INSERT INTO PRODUCTS (name, reference, part_brand, brand, price, description, car_model, year, motorisation, category, low_stock_threshold, stock, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [item.name, item.reference || null, item.part_brand || null, brand, item.price, item.description || '', car_model, year, motorisation, item.category || '0 Accessoires/Infodivert./divers', low_stock_threshold, item.stock, item.image_url || '']
     );
     const insertId = (result as any).insertId;
 
@@ -100,6 +104,8 @@ class Database {
     const year = firstComp?.year || item.year || existing.year;
     const motorisation = firstComp?.motorisation || item.motorisation || existing.motorisation;
     const name = item.name || existing.name;
+    const reference = item.reference !== undefined ? item.reference : existing.reference;
+    const part_brand = item.part_brand !== undefined ? item.part_brand : existing.part_brand;
     const price = item.price !== undefined ? item.price : existing.price;
     const description = item.description !== undefined ? item.description : existing.description;
     const category = item.category || existing.category;
@@ -108,8 +114,8 @@ class Database {
     const image_url = item.image_url || existing.image_url;
 
     await pool.query(
-      'UPDATE PRODUCTS SET name=?, brand=?, price=?, description=?, car_model=?, year=?, motorisation=?, category=?, low_stock_threshold=?, stock=?, image_url=? WHERE id=?',
-      [name, brand, price, description, car_model, year, motorisation, category, low_stock_threshold, stock, image_url, id]
+      'UPDATE PRODUCTS SET name=?, reference=?, part_brand=?, brand=?, price=?, description=?, car_model=?, year=?, motorisation=?, category=?, low_stock_threshold=?, stock=?, image_url=? WHERE id=?',
+      [name, reference, part_brand, brand, price, description, car_model, year, motorisation, category, low_stock_threshold, stock, image_url, id]
     );
 
     if (item.compatibilities !== undefined) {

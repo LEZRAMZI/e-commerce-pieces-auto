@@ -77,16 +77,16 @@ export default function ProductCard({ product, onAddToCart, onViewDetails }: Pro
         <div className="flex-1">
           {/* Brand label */}
           <p className="text-[10px] font-bold tracking-wider text-red-600 uppercase mb-1 truncate">
-            {product.brand || "PIÈCE D'ORIGINE"}
+            {product.part_brand || product.brand || "PIÈCE D'ORIGINE"}
           </p>
           
           {/* Product Name */}
           <h3 
             onClick={() => onViewDetails(product)}
             className="line-clamp-2 cursor-pointer text-sm font-bold tracking-tight text-gray-800 hover:text-red-600 transition leading-snug min-h-[2.5rem]"
-            title={product.name}
+            title={`${product.name} ${product.reference ? `(${product.reference})` : ''}`}
           >
-            {product.name}
+            {product.name} {product.reference && <span className="font-normal text-xs text-gray-500 ml-1">({product.reference})</span>}
           </h3>
 
           {/* Description */}

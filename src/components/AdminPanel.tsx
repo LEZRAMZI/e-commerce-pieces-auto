@@ -59,6 +59,8 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
 
   // Form coordinates to create/edit products
   const [pName, setPName] = useState('');
+  const [pReference, setPReference] = useState('');
+  const [pPartBrand, setPPartBrand] = useState('');
   const [pBrand, setPBrand] = useState('');
   const [pPrice, setPPrice] = useState('');
   const [pDescription, setPDescription] = useState('');
@@ -176,6 +178,8 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
   const openAddProductModal = () => {
     setEditingProduct(null);
     setPName('');
+    setPReference('');
+    setPPartBrand('');
     setPBrand('');
     setPPrice('');
     setPDescription('');
@@ -198,6 +202,8 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
   const openEditProductModal = (prod: Product) => {
     setEditingProduct(prod);
     setPName(prod.name);
+    setPReference(prod.reference || '');
+    setPPartBrand(prod.part_brand || '');
     setPBrand(prod.brand);
     setPPrice(prod.price.toString());
     setPDescription(prod.description);
@@ -271,6 +277,8 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
 
     const payload = {
       name: pName,
+      reference: pReference || undefined,
+      part_brand: pPartBrand || undefined,
       brand: pBrand,
       price: parseFloat(pPrice),
       description: pDescription,
@@ -498,9 +506,9 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-700">Destination WhatsApp</p>
-            <h3 className="mt-1 text-lg font-black text-slate-900">Numéro de réception des commandes</h3>
+            <h3 className="mt-1 text-lg font-black text-slate-900">Numéro(s) de réception des commandes</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Les nouveaux messages de commande seront envoyés vers : <span className="font-mono font-semibold text-slate-900">{whatsappNumber}</span>
+              Les nouveaux messages de commande seront envoyés vers (séparés par des virgules) : <span className="font-mono font-semibold text-slate-900">{whatsappNumber}</span>
             </p>
           </div>
 
@@ -513,7 +521,7 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
                 setWhatsappNumberError(null);
                 setWhatsappNumberSuccess(null);
               }}
-              placeholder="Ex. 213555123456"
+              placeholder="Ex. 213555123456, 213555123457"
               inputMode="tel"
               autoComplete="tel"
               className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 sm:min-w-[240px]"
@@ -1146,17 +1154,41 @@ export default function AdminPanel({ onLoginStateChange, productsList, onRefresh
               )}
 
               {/* Row 1 */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Nom de la pièce *</label>
-                <input
-                  id="prod-input-name"
-                  type="text"
-                  required
-                  placeholder="Ex: Plaquettes de frein avant Brembo"
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 py-2.5 px-3 outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 text-xs sm:text-sm"
-                  value={pName}
-                  onChange={(e) => setPName(e.target.value)}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Désignation *</label>
+                  <input
+                    id="prod-input-name"
+                    type="text"
+                    required
+                    placeholder="Ex: Plaquettes de frein avant"
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 py-2.5 px-3 outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 text-xs sm:text-sm"
+                    value={pName}
+                    onChange={(e) => setPName(e.target.value)}
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Marque de la pièce</label>
+                  <input
+                    id="prod-input-partbrand"
+                    type="text"
+                    placeholder="Ex: Bosch, Valeo, Brembo"
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 py-2.5 px-3 outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 text-xs sm:text-sm"
+                    value={pPartBrand}
+                    onChange={(e) => setPPartBrand(e.target.value)}
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Référence de la pièce</label>
+                  <input
+                    id="prod-input-reference"
+                    type="text"
+                    placeholder="Ex: REF-12345"
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 py-2.5 px-3 outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 text-xs sm:text-sm"
+                    value={pReference}
+                    onChange={(e) => setPReference(e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Group selection Category */}

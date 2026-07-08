@@ -258,7 +258,7 @@ async function startServer() {
   // POST create a product (Admin only)
   app.post('/api/products', requireAdmin as any, async (req: AuthenticatedRequest, res) => {
     try {
-      const { name, brand, price, description, car_model, year, stock, image_url, compatibilities, motorisation, category, low_stock_threshold } = req.body;
+      const { name, reference, part_brand, brand, price, description, car_model, year, stock, image_url, compatibilities, motorisation, category, low_stock_threshold } = req.body;
  
       // Basic validation
       if (!name || price === undefined || stock === undefined) {
@@ -282,6 +282,8 @@ async function startServer() {
  
       const newProduct = await dbInstance.createProduct({
         name,
+        reference: reference || null,
+        part_brand: part_brand || null,
         brand: parsedBrand,
         price: parseFloat(price),
         description: description || "",

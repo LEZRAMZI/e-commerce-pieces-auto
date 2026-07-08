@@ -196,6 +196,8 @@ export default function App() {
       const term = searchText.toLowerCase();
       const matchesName = product.name.toLowerCase().includes(term);
       const matchesDesc = product.description.toLowerCase().includes(term);
+      const matchesRef = product.reference ? product.reference.toLowerCase().includes(term) : false;
+      const matchesPartBrand = product.part_brand ? product.part_brand.toLowerCase().includes(term) : false;
       
       const matchesAnyCompText = comps.some(c => 
         c.brand.toLowerCase().includes(term) || 
@@ -203,7 +205,7 @@ export default function App() {
         c.year.toString().includes(term)
       );
 
-      return matchesName || matchesDesc || matchesAnyCompText;
+      return matchesName || matchesDesc || matchesRef || matchesPartBrand || matchesAnyCompText;
     }
 
     return true;
